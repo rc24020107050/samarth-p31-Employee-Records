@@ -1,0 +1,15 @@
+{
+  "id": "P00",
+  "title": "Example: Suggestion Box",
+  "student": {
+    "name": "",
+    "roll_no": ""
+  },
+  "table_prefix": "example_",
+  "entry": "index.php",
+  "menu": [
+    { "label": "Suggestions", "href": "index.php" },
+    { "label": "New suggestion", "href": "add.php" }
+  ],
+  "addon": null
+}
