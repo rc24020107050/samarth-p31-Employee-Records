@@ -25,9 +25,11 @@ This repository is your starting point. It already gives you:
 
 1. **Install XAMPP** (PHP 8.x) from apachefriends.org. Start **Apache** and **MySQL** in the XAMPP Control Panel.
 2. **Install GitHub Desktop** from desktop.github.com and sign in with your GitHub account.
-3. Send your GitHub username to the teacher. You will get an e-mail invitation to your own private
-   repository, named after your project and roll number, e.g. `campus-sutra/p22-24020107008`.
-   Click **Accept invitation** (it also appears under the bell icon on github.com).
+3. **Create your GitHub account with the username `rc` + your university roll number**, e.g.
+   `rc24020107008` (github.com → Sign up). The teacher's script finds that account and invites you to
+   your own private repository, named after your project and roll number, e.g.
+   `campus-sutra/p22-24020107008`. Click **Accept invitation** in the e-mail (it also appears under the
+   bell icon on github.com). Already have a GitHub account with another name? Send that name to the teacher instead.
 4. On your repository page click **Code → Open with GitHub Desktop**, and set the local path to
    `C:\xampp\htdocs`. Your files are now in a folder like `C:\xampp\htdocs\p22-24020107008`.
 5. Open **http://localhost/phpmyadmin**:
@@ -146,14 +148,28 @@ shared/             ← do not edit: theme, header, footer, login, sample databa
 tools/              ← the automatic check (php tools/check_module.php)
 ```
 
-## 7. The automatic check
+## 7. The class test portal
+
+Everyone's modules also run together online, on one shared database, at the address the teacher shares
+in the class group. **About five minutes after you push**, your module is live there at
+`…/modules/<your project ID>/` — with the same header, login and data as every other module, so you
+can see your pages working with your classmates' (e.g. the student dashboard reading fee payments).
+
+- Enter with your **university roll number** and the **class code** given in class.
+- Then use **switch user** (yellow bar) to try your module as a student, HOD, warden, accountant …
+- **`…/status.php`** shows every module: live or not, and whether its `database.sql` loaded — with the
+  error message if it did not.
+- Develop on your own XAMPP; the test portal is for seeing modules work together. Its data is sample
+  data and can be reset at any time.
+
+## 8. The automatic check
 
 Every push runs **Module check** (your repository → **Actions** tab). A green tick means:
 every PHP file has valid syntax, `module.json` is filled in, `database.sql` follows the table rules and
 imports cleanly into MySQL, and `shared/` is untouched. A red cross lists exactly what to fix.
 You can run the same check on your PC: `C:\xampp\php\php.exe tools\check_module.php`.
 
-## 8. Problems?
+## 9. Problems?
 
 - **"Cannot connect to MySQL"** — start MySQL in XAMPP; check the database is named `rc_campus`.
 - **Table doesn't exist** — import `shared/shared_schema.sql` first, then `database.sql`.
