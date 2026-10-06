@@ -1,15 +1,21 @@
 {
-  "id": "P00",
-  "title": "Example: Suggestion Box",
+  "id": "P31",
+  "title": "Employee Records & Service Book",
   "student": {
-    "name": "",
-    "roll_no": ""
+    "name": "Priyanshu Kumar",
+    "roll_no": "24020107050"
   },
-  "table_prefix": "example_",
+  "table_prefix": "emp_",
   "entry": "index.php",
   "menu": [
-    { "label": "Suggestions", "href": "index.php" },
-    { "label": "New suggestion", "href": "add.php" }
+    {
+      "label": "Suggestions (example)",
+      "href": "index.php"
+    },
+    {
+      "label": "New suggestion (example)",
+      "href": "add.php"
+    }
   ],
   "addon": null
 }
