@@ -1,0 +1,25 @@
+{
+  "id": "P31",
+  "title": "Employee Records & Service Book",
+  "student": {
+    "name": "Priyanshu Kumar",
+    "roll_no": "24020107050"
+  },
+  "table_prefix": "emp_",
+  "entry": "index.php",
+  "menu": [
+    {
+      "label": "Employee Records",
+      "href": "index.php"
+    },
+    {
+      "label": "Add Employee",
+      "href": "add.php"
+    },
+    {
+      "label": "Service Book",
+      "href": "index.php"
+    }
+],
+  "addon": null
+}

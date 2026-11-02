@@ -1,0 +1,24 @@
+# local scratch
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# built portal (teacher tool output)
+/portal/
+
+# Local credentials
+/config.php
+/.env
+/.env.*
+
+# Backup files
+*_backup.*
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local database exports
+database_backup.sql
+docs/TEACHER.md
