@@ -34,13 +34,9 @@ $st->execute();
 $entries = $st->get_result()->fetch_all(MYSQLI_ASSOC);
 
 page_start('My Employee Profile', [
-    if (user_role() !== 'admin') {
-    echo '<p><a class="btn btn-ghost" href="' .
-        e(module_url('my_profile.php')) .
-        '">My Profile</a></p>';
-}
     'sub' => 'View your personal employee information and service-book history.'
 ]);
+    
 ?>
 
 <div class="card">
