@@ -9,13 +9,17 @@
   "entry": "index.php",
   "menu": [
     {
-      "label": "Suggestions (example)",
+      "label": "Employee Records",
       "href": "index.php"
     },
     {
-      "label": "New suggestion (example)",
+      "label": "Add Employee",
       "href": "add.php"
+    },
+    {
+      "label": "Service Book",
+      "href": "index.php"
     }
-  ],
+],
   "addon": null
 }

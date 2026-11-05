@@ -1,90 +1,165 @@
 <?php
-/* Example: one record, its workflow, a staff-only status change and an owner-only delete (Units 3 and 4). */
 require __DIR__ . '/boot.php';
 require __DIR__ . '/includes/functions.php';
 require_login();
+$isAdmin = (user_role() === 'admin');
 
-$id = (int) (isset($_GET['id']) ? $_GET['id'] : 0);
-$row = find_suggestion($id);
-if (!$row) {
-    http_response_code(404);
-    page_start('Not found');
-    echo '<div class="empty"><h2>Suggestion not found</h2><p><a href="' . e(module_url()) . '">Back to the list</a></p></div>';
-    page_end();
-    exit;
+
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+if (!$id || $id < 1) {
+    flash('error', 'Invalid employee ID.');
+    redirect(module_url());
 }
+// Employee can access only their own record.
+if (!$isAdmin) {
+    $myEmployeeId = get_my_module_employee_id();
 
-if (is_post()) {
-    csrf_verify();
-    $action = isset($_POST['action']) ? $_POST['action'] : '';
-
-    if ($action === 'advance' && has_role('staff', 'principal')) {
-        // Move one step along the workflow — never skip a stage.
-        $pos = array_search($row['status'], SUGGESTION_FLOW, true);
-        if ($pos !== false && $pos < count(SUGGESTION_FLOW) - 1) {
-            $next = SUGGESTION_FLOW[$pos + 1];
-            $reply = trim(isset($_POST['reply']) ? $_POST['reply'] : '');
-            $st = db()->prepare('UPDATE example_suggestions SET status = ?, reply = ?, updated_at = NOW() WHERE id = ?');
-            $st->bind_param('ssi', $next, $reply, $id);
-            $st->execute();
-            audit('status:' . $next, 'example_suggestions', $id);
-            notify((int) $row['user_id'], 'Your suggestion "' . excerpt($row['title'], 40) . '" is now ' . $next, 'view.php?id=' . $id);
-            flash('ok', 'Marked as ' . $next . '.');
-        }
-    } elseif ($action === 'delete' && (int) $row['user_id'] === user_id() && $row['status'] === 'open') {
-        $st = db()->prepare('DELETE FROM example_suggestions WHERE id = ? AND user_id = ?');
-        $uid = user_id();
-        $st->bind_param('ii', $id, $uid);
-        $st->execute();
-        audit('delete', 'example_suggestions', $id);
-        flash('ok', 'Suggestion deleted.');
-        redirect(module_url());
+    if (!$myEmployeeId || (int) $id !== $myEmployeeId) {
+        http_response_code(403);
+        exit('Access denied. You can only view your own employee record.');
     }
-    redirect(module_url('view.php?id=' . $id));
 }
 
-$pos = array_search($row['status'], SUGGESTION_FLOW, true);
-page_start($row['title'], ['sub' => suggestion_ref($row) . ' · ' . SUGGESTION_CATEGORIES[$row['category']]]);
+$employee = find_employee($id);
+
+if (!$employee) {
+    flash('error', 'Employee record not found.');
+    redirect(module_url());
+}
+
+$sql = 'SELECT * FROM emp_service_book_entries
+        WHERE employee_id = ?
+        ORDER BY effective_date DESC, id DESC';
+
+$st = db()->prepare($sql);
+$st->bind_param('i', $id);
+$st->execute();
+$entries = $st->get_result()->fetch_all(MYSQLI_ASSOC);
+
+page_start('Employee Details', [
+    'sub' => 'Employee information and service-book history.'
+]);
 ?>
+
 <div class="card">
-  <ol class="timeline">
-    <?php foreach (SUGGESTION_FLOW as $i => $s): ?>
-      <li class="<?= $i < $pos ? 'done' : ($i === $pos ? 'current' : '') ?>"><?= e(ucfirst($s)) ?></li>
-    <?php endforeach; ?>
-  </ol>
-</div>
-<div class="grid grid-2">
-  <div class="card">
-    <dl class="dl">
-      <dt>Submitted by</dt><dd><?= e($row['full_name']) ?></dd>
-      <dt>On</dt><dd><?= e(date('d M Y, h:i A', strtotime($row['created_at']))) ?></dd>
-      <dt>Status</dt><dd><?= status_badge($row['status']) ?></dd>
-      <dt>Reply</dt><dd><?= $row['reply'] ? e($row['reply']) : '<span class="muted">—</span>' ?></dd>
-    </dl>
-    <h3 style="margin-top:18px">Suggestion</h3>
-    <p><?= nl2br(e($row['body'])) ?></p>
-  </div>
-  <div class="card">
-    <?php if (has_role('staff', 'principal') && $pos < count(SUGGESTION_FLOW) - 1): ?>
-      <h3>Move to “<?= e(ucfirst(SUGGESTION_FLOW[$pos + 1])) ?>”</h3>
-      <form method="post" class="form">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="advance">
-        <div class="field"><label for="reply">Reply to the student (optional)</label>
-          <textarea id="reply" name="reply"><?= e($row['reply']) ?></textarea></div>
-        <button class="btn btn-ok">Mark as <?= e(SUGGESTION_FLOW[$pos + 1]) ?></button>
-      </form>
-    <?php elseif ((int) $row['user_id'] === user_id() && $row['status'] === 'open'): ?>
-      <h3>Changed your mind?</h3>
-      <p class="muted">You can delete a suggestion until it is reviewed.</p>
-      <form method="post">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="delete">
-        <button class="btn btn-danger" data-confirm="Delete this suggestion?">Delete</button>
-      </form>
-    <?php else: ?>
-      <p class="muted">No actions available.</p>
+    <h2>
+        <?= e($employee['title'] . ' ' . $employee['full_name']) ?>
+    </h2>
+
+    <p>
+        <strong>Employee Code:</strong>
+        <?= e($employee['employee_code']) ?>
+    </p>
+
+    <p>
+        <strong>Department:</strong>
+        <?= e($employee['department']) ?>
+    </p>
+
+    <p>
+        <strong>Designation:</strong>
+        <?= e($employee['designation']) ?>
+    </p>
+
+    <p>
+        <strong>Employee Type:</strong>
+        <?= e($employee['employment_type']) ?>
+    </p>
+
+    <p>
+        <strong>Email:</strong>
+        <?= e($employee['email']) ?>
+    </p>
+
+    <p>
+        <strong>Date of Birth:</strong>
+        <?= e($employee['date_of_birth']) ?>
+    </p>
+
+    <p>
+        <strong>Joining Date:</strong>
+        <?= e($employee['joining_date']) ?>
+    </p>    
+        <?php if($isAdmin): ?>
+            <<p>
+            <strong>PAN:</strong>
+        <?= e($employee['pan']) ?>
+    </p>
     <?php endif; ?>
-  </div>
+
+    <p>
+        <strong>Record Created:</strong>
+        <?= e($employee['created_at']) ?>
+    </p>
+
+    <div class="btn-row">
+        <a class="btn btn-ghost" href="<?= e(module_url()) ?>">
+            Back to Employees
+        </a>
+    </div>
 </div>
-<?php page_end();
+
+<div class="card">
+    <h2>Service Book History</h2>
+
+    <?php if (!$entries): ?>
+        <p>No service-book entries found.</p>
+    <?php else: ?>
+        <?php foreach ($entries as $entry): ?>
+            <div class="card">
+                <h3><?= e($entry['entry_type']) ?></h3>
+                <button type="button" class="btn btn-ghost service-entry-toggle">
+                           Show Details
+                </button>
+                <div class="service-entry-details" hidden>
+                    <p>
+                        <strong>Entry ID:</strong>
+                        <?= e($entry['id']) ?>
+                    </p>
+
+                    <p>
+                        <strong>Employee ID:</strong>
+                        <?= e($entry['employee_id']) ?>
+                    </p>
+
+                    <p>
+                        <strong>Created At:</strong>
+                        <?= e($entry['created_at']) ?>
+                    </p>
+                <p>
+                    <strong>Effective Date:</strong>
+                    <?= e($entry['effective_date']) ?>
+                </p>
+        </div>
+
+                <?php if ($entry['previous_designation'] || $entry['new_designation']): ?>
+                    <p>
+                        <strong>Designation:</strong>
+                        <?= e($entry['previous_designation'] ?: '—') ?>
+                        →
+                        <?= e($entry['new_designation'] ?: '—') ?>
+                    </p>
+                <?php endif; ?>
+
+                <?php if ($entry['previous_department'] || $entry['new_department']): ?>
+                    <p>
+                        <strong>Department:</strong>
+                        <?= e($entry['previous_department'] ?: '—') ?>
+                        →
+                        <?= e($entry['new_department'] ?: '—') ?>
+                    </p>
+                <?php endif; ?>
+
+                <?php if ($entry['remarks']): ?>
+                    <p>
+                        <strong>Remarks:</strong>
+                        <?= e($entry['remarks']) ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+
+<?php page_end(); ?>

@@ -1,81 +1,179 @@
 <?php
-/* Example module page: list + GET search/filter (Unit 3), prepared SELECT (Unit 4), live search via AJAX (Unit 5). */
 require __DIR__ . '/boot.php';
 require __DIR__ . '/includes/functions.php';
 require_login();
+require_role('admin');
+$search = trim($_GET['search'] ?? '');
+$department = trim($_GET['department'] ?? '');
+$designation = trim($_GET['designation'] ?? '');
 
-// GET filters — they belong in the URL, so the filtered list can be bookmarked or shared.
-$q = trim(isset($_GET['q']) ? $_GET['q'] : '');
-$status = isset($_GET['status']) && in_array($_GET['status'], SUGGESTION_FLOW, true) ? $_GET['status'] : '';
+$sql = 'SELECT
+            e.id,
+            e.employee_code,
+            e.title,
+            e.full_name,
+            COALESCE(d.name, e.department) AS department,
+            e.designation,
+            e.employment_type,
+            e.joining_date
+        FROM emp_employees e
+        LEFT JOIN departments d
+            ON TRIM(LOWER(e.department)) = TRIM(LOWER(d.name))
+        WHERE 1=1';
 
-$sql = 'SELECT s.id, s.category, s.title, s.body, s.status, s.created_at, u.full_name
-        FROM example_suggestions s JOIN users u ON u.id = s.user_id WHERE 1 = 1';
 $types = '';
 $params = [];
-if (!has_role('staff', 'principal')) {           // students see only their own
-    $sql .= ' AND s.user_id = ?';
-    $types .= 'i';
-    $params[] = user_id();
-}
-if ($q !== '') {
-    $sql .= ' AND (s.title LIKE ? OR s.body LIKE ?)';
+
+if ($search !== '') {
+    $sql .= ' AND (employee_code LIKE ? OR full_name LIKE ?)';
+    $term = '%' . $search . '%';
     $types .= 'ss';
-    $like = '%' . $q . '%';
-    array_push($params, $like, $like);
+    $params[] = $term;
+    $params[] = $term;
 }
-if ($status !== '') {
-    $sql .= ' AND s.status = ?';
+
+if ($department !== '') {
+    $sql .= ' AND department = ?';
     $types .= 's';
-    $params[] = $status;
+    $params[] = $department;
 }
-$sql .= ' ORDER BY s.created_at DESC';
+
+if ($designation !== '') {
+    $sql .= ' AND designation = ?';
+    $types .= 's';
+    $params[] = $designation;
+}
+
+$sql .= ' ORDER BY full_name ASC';
 
 $st = db()->prepare($sql);
+
 if ($types !== '') {
     $st->bind_param($types, ...$params);
 }
-$st->execute();
-$rows = $st->get_result()->fetch_all(MYSQLI_ASSOC);
-$counts = suggestion_counts();
 
-page_start('Suggestions', [
-    'sub' => 'Ideas from students and staff for improving the college.',
-    'actions' => '<a class="btn" href="' . e(module_url('add.php')) . '">+ New suggestion</a>',
+$st->execute();
+$employees = $st->get_result()->fetch_all(MYSQLI_ASSOC);
+
+$departments = db()->query(
+    'SELECT DISTINCT department FROM emp_employees ORDER BY department'
+)->fetch_all(MYSQLI_ASSOC);
+
+$designations = db()->query(
+    'SELECT DISTINCT designation FROM emp_employees ORDER BY designation'
+)->fetch_all(MYSQLI_ASSOC);
+
+page_start('Employee Records', [
+    'sub' => 'Search and manage teaching and non-teaching employee records.'
 ]);
 ?>
-<div class="grid grid-3" style="margin-bottom:18px" id="tiles">
-  <div class="stat wait"><div class="n" data-count="open"><?= $counts['open'] ?></div><div class="l">Open</div></div>
-  <div class="stat"><div class="n" data-count="reviewed"><?= $counts['reviewed'] ?></div><div class="l">Reviewed</div></div>
-  <div class="stat ok"><div class="n" data-count="closed"><?= $counts['closed'] ?></div><div class="l">Closed</div></div>
+
+<div class="card">
+    <form method="get" class="form">
+        <div class="grid grid-2">
+            <div class="field">
+                <label for="search">Search by name or employee code</label>
+                <input
+                    type="text"
+                    id="search"
+                    name="search"
+                    value="<?= e($search) ?>"
+                    placeholder="e.g. Aarav Sharma or RC-T-0042"
+                >
+            </div>
+
+            <div class="field">
+                <label for="department">Department</label>
+                <select id="department" name="department">
+                    <option value="">All Departments</option>
+                    <?php foreach ($departments as $item): ?>
+                        <option
+                            value="<?= e($item['department']) ?>"
+                            <?= $department === $item['department'] ? 'selected' : '' ?>
+                        >
+                            <?= e($item['department']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="designation">Designation</label>
+                <select id="designation" name="designation">
+                    <option value="">All Designations</option>
+                    <?php foreach ($designations as $item): ?>
+                        <option
+                            value="<?= e($item['designation']) ?>"
+                            <?= $designation === $item['designation'] ? 'selected' : '' ?>
+                        >
+                            <?= e($item['designation']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn" type="submit">Search Employees</button>
+            <a class="btn btn-ghost" href="<?= e(module_url()) ?>">Clear Filters</a>
+            <a class="btn" href="<?= e(module_url('add.php')) ?>">Add Employee</a>
+            <a class="btn" href="<?= e(module_url('service_book.php')) ?>">
+    Add Service Book Entry
+</a>
+        </div>
+    </form>
 </div>
 
-<form method="get" class="toolbar" id="filter">
-  <input type="search" name="q" id="q" value="<?= e($q) ?>" placeholder="Search title or text…" autocomplete="off">
-  <select name="status" id="status">
-    <option value="">Any status</option>
-    <?php foreach (SUGGESTION_FLOW as $s): ?>
-      <option value="<?= e($s) ?>"<?= $s === $status ? ' selected' : '' ?>><?= e(ucfirst($s)) ?></option>
-    <?php endforeach; ?>
-  </select>
-  <button class="btn btn-outline">Filter</button>
-</form>
+<div class="card">
+    <h2>Employee Records (<?= count($employees) ?>)</h2>
 
-<div class="table-wrap">
-  <table class="table">
-    <thead><tr><th>Ref</th><th>Suggestion</th><th>Category</th><th>By</th><th>Status</th><th></th></tr></thead>
-    <tbody id="rows">
-    <?php foreach ($rows as $r): ?>
-      <tr>
-        <td class="mono small"><?= e(suggestion_ref($r)) ?></td>
-        <td><b><?= e($r['title']) ?></b><div class="small muted"><?= e(excerpt($r['body'])) ?></div></td>
-        <td><?= e(SUGGESTION_CATEGORIES[$r['category']]) ?></td>
-        <td><?= e($r['full_name']) ?></td>
-        <td><?= status_badge($r['status']) ?></td>
-        <td class="actions"><a class="btn btn-sm btn-outline" href="<?= e(module_url('view.php?id=' . $r['id'])) ?>">Open</a></td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-  <?php if (!$rows): ?><div class="empty" id="none">No suggestions match.</div><?php endif; ?>
+    <?php if (!$employees): ?>
+        <p>No employees found. Try different search filters.</p>
+    <?php else: ?>
+        <div style="overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee Code</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Type</th>
+                        <th>Joining Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($employees as $employee): ?>
+                        <tr>
+                            <td><?= e($employee['employee_code']) ?></td>
+                            <td><?= e($employee['title'] . ' ' . $employee['full_name']) ?></td>
+                            <td><?= e($employee['department']) ?></td>
+                            <td><?= e($employee['designation']) ?></td>
+                            <td><?= e($employee['employment_type']) ?></td>
+                            <td><?= e($employee['joining_date']) ?></td>
+                            <td>
+                                <a href="<?= e(module_url('view.php?id=' . $employee['id'])) ?>">
+                                    View Details
+                                </a>
+                                <br>
+                                <a href="<?= e(module_url('edit.php?id=' . $employee['id'])) ?>">
+                                 Edit
+                                </a>
+                                <form method="post"
+                                   action="<?= e(module_url('delete.php')) ?>"
+                                   onsubmit="return confirm('Are you sure you want to delete this employee? Their service-book history will also be deleted.');">
+                                 <?= csrf_field() ?>
+                                 <input type="hidden" name="id" value="<?= (int) $employee['id'] ?>">
+                                 <button class="btn btn-ghost" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
-<?php page_end();
+
+<?php page_end(); ?>
