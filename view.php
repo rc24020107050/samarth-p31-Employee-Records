@@ -1,17 +1,20 @@
+
 <?php
 require __DIR__ . '/boot.php';
 require __DIR__ . '/includes/functions.php';
-require_login();
-$isAdmin = (user_role() === 'admin');
 
+require_login();
+
+$isAdmin = (user_role() === 'admin');
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-if (!$id || $id < 1) {
+if ($id === false || $id === null || $id < 1) {
     flash('error', 'Invalid employee ID.');
     redirect(module_url());
 }
-// Employee can access only their own record.
+
+// Employees can access only their own records.
 if (!$isAdmin) {
     $myEmployeeId = get_my_module_employee_id();
 
@@ -21,13 +24,14 @@ if (!$isAdmin) {
     }
 }
 
-$employee = find_employee($id);
+$employee = find_employee((int) $id);
 
 if (!$employee) {
     flash('error', 'Employee record not found.');
     redirect(module_url());
 }
 
+// Fetch service-book history for this employee.
 $sql = 'SELECT * FROM emp_service_book_entries
         WHERE employee_id = ?
         ORDER BY effective_date DESC, id DESC';
@@ -35,6 +39,7 @@ $sql = 'SELECT * FROM emp_service_book_entries
 $st = db()->prepare($sql);
 $st->bind_param('i', $id);
 $st->execute();
+
 $entries = $st->get_result()->fetch_all(MYSQLI_ASSOC);
 
 page_start('Employee Details', [
@@ -80,12 +85,13 @@ page_start('Employee Details', [
     <p>
         <strong>Joining Date:</strong>
         <?= e($employee['joining_date']) ?>
-    </p>    
-        <?php if($isAdmin): ?>
-            <<p>
-            <strong>PAN:</strong>
-        <?= e($employee['pan']) ?>
     </p>
+
+    <?php if ($isAdmin): ?>
+        <p>
+            <strong>PAN:</strong>
+            <?= e($employee['pan']) ?>
+        </p>
     <?php endif; ?>
 
     <p>
@@ -106,13 +112,20 @@ page_start('Employee Details', [
     <?php if (!$entries): ?>
         <p>No service-book entries found.</p>
     <?php else: ?>
+
         <?php foreach ($entries as $entry): ?>
             <div class="card">
                 <h3><?= e($entry['entry_type']) ?></h3>
-                <button type="button" class="btn btn-ghost service-entry-toggle">
-                           Show Details
+
+                <button
+                    type="button"
+                    class="btn btn-ghost service-entry-toggle"
+                    aria-expanded="false">
+                    Show Details
                 </button>
+
                 <div class="service-entry-details" hidden>
+
                     <p>
                         <strong>Entry ID:</strong>
                         <?= e($entry['id']) ?>
@@ -127,39 +140,44 @@ page_start('Employee Details', [
                         <strong>Created At:</strong>
                         <?= e($entry['created_at']) ?>
                     </p>
-                <p>
-                    <strong>Effective Date:</strong>
-                    <?= e($entry['effective_date']) ?>
-                </p>
-        </div>
 
-                <?php if ($entry['previous_designation'] || $entry['new_designation']): ?>
                     <p>
-                        <strong>Designation:</strong>
-                        <?= e($entry['previous_designation'] ?: '—') ?>
-                        →
-                        <?= e($entry['new_designation'] ?: '—') ?>
+                        <strong>Effective Date:</strong>
+                        <?= e($entry['effective_date']) ?>
                     </p>
-                <?php endif; ?>
 
-                <?php if ($entry['previous_department'] || $entry['new_department']): ?>
-                    <p>
-                        <strong>Department:</strong>
-                        <?= e($entry['previous_department'] ?: '—') ?>
-                        →
-                        <?= e($entry['new_department'] ?: '—') ?>
-                    </p>
-                <?php endif; ?>
+                    <?php if ($entry['previous_designation'] || $entry['new_designation']): ?>
+                        <p>
+                            <strong>Designation:</strong>
+                            <?= e($entry['previous_designation'] ?: '—') ?>
+                            →
+                            <?= e($entry['new_designation'] ?: '—') ?>
+                        </p>
+                    <?php endif; ?>
 
-                <?php if ($entry['remarks']): ?>
-                    <p>
-                        <strong>Remarks:</strong>
-                        <?= e($entry['remarks']) ?>
-                    </p>
-                <?php endif; ?>
+                    <?php if ($entry['previous_department'] || $entry['new_department']): ?>
+                        <p>
+                            <strong>Department:</strong>
+                            <?= e($entry['previous_department'] ?: '—') ?>
+                            →
+                            <?= e($entry['new_department'] ?: '—') ?>
+                        </p>
+                    <?php endif; ?>
+
+                    <?php if ($entry['remarks']): ?>
+                        <p>
+                            <strong>Remarks:</strong>
+                            <?= e($entry['remarks']) ?>
+                        </p>
+                    <?php endif; ?>
+
+                </div>
             </div>
         <?php endforeach; ?>
+
     <?php endif; ?>
 </div>
 
 <?php page_end(); ?>
+
+                
