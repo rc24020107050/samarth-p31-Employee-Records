@@ -1,3 +1,4 @@
+
 {
   "id": "P31",
   "title": "Employee Records & Service Book",
@@ -18,8 +19,8 @@
     },
     {
       "label": "Service Book",
-      "href": "index.php"
+      "href": "service_book.php"
     }
-],
+  ],
   "addon": null
 }
