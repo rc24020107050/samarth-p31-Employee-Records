@@ -6,12 +6,12 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS emp_service_book_entries;
 DROP TABLE IF EXISTS emp_employees;
-DROP TABLE IF EXISTS example_suggestions;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE emp_employees (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NULL UNIQUE,
     employee_code VARCHAR(20) NOT NULL UNIQUE,
     title ENUM('Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.') NOT NULL DEFAULT 'Mr.',
     full_name VARCHAR(120) NOT NULL,
@@ -26,7 +26,11 @@ CREATE TABLE emp_employees (
     updated_at DATETIME NULL,
     INDEX idx_emp_department (department),
     INDEX idx_emp_designation (designation),
-    INDEX idx_emp_name (full_name)
+    INDEX idx_emp_name (full_name),
+    CONSTRAINT fk_emp_employee_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE emp_service_book_entries (
@@ -83,3 +87,4 @@ VALUES
 (9, 'Joining', '2021-08-09', NULL, 'Technical Assistant', NULL, 'IT Services', 'Initial appointment'),
 (10, 'Joining', '2014-07-21', NULL, 'Assistant Professor', NULL, 'Computer Science', 'Initial appointment'),
 (9, 'Transfer', '2023-04-01', 'Technical Assistant', 'Technical Assistant', 'IT Services', 'Computer Science', 'Department transfer recorded');
+
