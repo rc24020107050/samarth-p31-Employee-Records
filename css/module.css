@@ -1,2 +1,107 @@
-/* Layout tweaks for your module only. Colours, fonts, buttons, tables and forms come from shared/theme.css —
-   do not redefine them here. Use the theme's variables if you need a colour: color: var(--brand); */
+/*
+ * P31 Employee Records & Service Book
+ * Module-specific layout only.
+ * Shared theme controls colours, typography,
+ * buttons, tables and form controls.
+ */
+
+/* Search and filter layout */
+.p31-filter-form {
+    max-width: none;
+}
+
+.p31-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 22px;
+}
+
+.p31-filter-grid .field {
+    min-width: 0;
+    margin-bottom: 4px;
+}
+
+/* Employee records table */
+.p31-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.p31-table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+}
+
+.p31-table th,
+.p31-table td {
+    padding: 12px 14px;
+    vertical-align: middle;
+}
+
+.p31-table .p31-action-cell {
+    min-width: 190px;
+    white-space: nowrap;
+}
+
+.p31-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.p31-actions form {
+    display: inline-flex;
+    margin: 0;
+}
+
+/* Employee and service-book forms */
+.p31-form {
+    max-width: 900px;
+}
+
+.p31-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 24px;
+}
+
+.p31-form-grid .field {
+    min-width: 0;
+    margin-bottom: 2px;
+}
+
+.p31-form .btn-row {
+    margin-top: 22px;
+}
+
+/* Employee profile details */
+.p31-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 24px;
+}
+
+.p31-profile-item {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+/* Responsive layout */
+@media (max-width: 700px) {
+    .p31-filter-grid,
+    .p31-form-grid,
+    .p31-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .p31-actions {
+        gap: 5px;
+    }
+}
