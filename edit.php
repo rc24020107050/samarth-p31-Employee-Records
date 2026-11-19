@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/boot.php';
 require __DIR__ . '/includes/functions.php';
+
 require_login();
 require_role('admin');
 
@@ -23,13 +24,14 @@ $errors = [];
 
 if (is_post()) {
     csrf_verify();
+
     $input = $_POST;
 
-$input['employee_code'] = normalise_employee_code($input['employee_code'] ?? '');
-$input['full_name'] = normalise_employee_name($input['full_name'] ?? '');
-$input['pan'] = normalise_pan($input['pan'] ?? '');
+    $input['employee_code'] = normalise_employee_code($input['employee_code'] ?? '');
+    $input['full_name'] = normalise_employee_name($input['full_name'] ?? '');
+    $input['pan'] = normalise_pan($input['pan'] ?? '');
 
-list($data, $errors) = validate_employee($input);
+    list($data, $errors) = validate_employee($input);
 
     if (!$errors) {
         $sql = 'UPDATE emp_employees SET
@@ -73,87 +75,160 @@ list($data, $errors) = validate_employee($input);
 page_start('Edit Employee', [
     'sub' => 'Update employee details and appointment information.'
 ]);
+
+$fields = [
+    'full_name' => ['Full Name', 120],
+    'pan' => ['PAN', 10],
+    'email' => ['Email Address', 150],
+    'date_of_birth' => ['Date of Birth', null],
+    'department' => ['Department', 100],
+    'designation' => ['Designation', 100],
+    'joining_date' => ['Joining Date', null],
+];
 ?>
+
 <div class="card">
-  <?php if (isset($errors['duplicate'])): ?>
-    <div class="field-error"><?= e($errors['duplicate']) ?></div>
-  <?php endif; ?>
-
-  <form method="post" class="form">
-    <?= csrf_field() ?>
-
-    <div class="grid grid-2">
-      <div class="field">
-        <label for="employee_code">Employee Code *</label>
-        <input id="employee_code" name="employee_code" required
-          value="<?= e($data['employee_code']) ?>">
-        <?php if (isset($errors['employee_code'])): ?>
-          <div class="field-error"><?= e($errors['employee_code']) ?></div>
-        <?php endif; ?>
-      </div>
-
-      <div class="field">
-        <label for="title">Title *</label>
-        <select id="title" name="title" required>
-          <?php foreach (['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.'] as $title): ?>
-            <option value="<?= e($title) ?>"
-              <?= $data['title'] === $title ? 'selected' : '' ?>>
-              <?= e($title) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <?php if (isset($errors['title'])): ?>
-          <div class="field-error"><?= e($errors['title']) ?></div>
-        <?php endif; ?>
-      </div>
-
-      <?php
-      $fields = [
-          'full_name' => ['Full Name', 120],
-          'pan' => ['PAN', 10],
-          'email' => ['Email', 150],
-          'date_of_birth' => ['Date of Birth', null],
-          'department' => ['Department', 100],
-          'designation' => ['Designation', 100],
-          'joining_date' => ['Joining Date', null],
-      ];
-      foreach ($fields as $name => [$label, $maxLength]):
-          $type = in_array($name, ['date_of_birth', 'joining_date'], true)
-              ? 'date' : ($name === 'email' ? 'email' : 'text');
-      ?>
-        <div class="field">
-          <label for="<?= e($name) ?>"><?= e($label) ?> *</label>
-          <input type="<?= e($type) ?>" id="<?= e($name) ?>"
-            name="<?= e($name) ?>" required
-            <?= $maxLength ? 'maxlength="' . (int) $maxLength . '"' : '' ?>
-            value="<?= e($data[$name] ?? '') ?>">
-          <?php if (isset($errors[$name])): ?>
-            <div class="field-error"><?= e($errors[$name]) ?></div>
-          <?php endif; ?>
+    <div class="card-head">
+        <div>
+            <h2>Edit Employee Record</h2>
+            <p class="help">
+                Employee Code:
+                <strong><?= e($employee['employee_code']) ?></strong>
+            </p>
         </div>
-      <?php endforeach; ?>
-
-      <div class="field">
-        <label for="employment_type">Employee Type *</label>
-        <select id="employment_type" name="employment_type" required>
-          <?php foreach (['Teaching', 'Non-Teaching'] as $type): ?>
-            <option value="<?= e($type) ?>"
-              <?= $data['employment_type'] === $type ? 'selected' : '' ?>>
-              <?= e($type) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <?php if (isset($errors['employment_type'])): ?>
-          <div class="field-error"><?= e($errors['employment_type']) ?></div>
-        <?php endif; ?>
-      </div>
+        <span class="badge">Admin Access</span>
     </div>
 
-    <div class="btn-row">
-      <button class="btn" type="submit">Update Employee</button>
-      <a class="btn btn-ghost"
-        href="<?= e(module_url('view.php?id=' . $id)) ?>">Cancel</a>
-    </div>
-  </form>
+    <?php if (isset($errors['duplicate'])): ?>
+        <div class="alert">
+            <?= e($errors['duplicate']) ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" class="form p31-form">
+        <?= csrf_field() ?>
+
+        <h3>Personal & Identity Information</h3>
+
+        <div class="p31-form-grid">
+            <div class="field">
+                <label for="employee_code">Employee Code *</label>
+                <input
+                    id="employee_code"
+                    name="employee_code"
+                    required
+                    maxlength="30"
+                    value="<?= e($data['employee_code'] ?? '') ?>">
+
+                <?php if (isset($errors['employee_code'])): ?>
+                    <div class="field-error">
+                        <?= e($errors['employee_code']) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="field">
+                <label for="title">Title *</label>
+                <select id="title" name="title" required>
+                    <?php foreach (['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Prof.'] as $title): ?>
+                        <option
+                            value="<?= e($title) ?>"
+                            <?= ($data['title'] ?? '') === $title ? 'selected' : '' ?>>
+                            <?= e($title) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <?php if (isset($errors['title'])): ?>
+                    <div class="field-error">
+                        <?= e($errors['title']) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <?php foreach (array_slice($fields, 0, 4, true) as $name => [$label, $maxLength]):
+                $type = match ($name) {
+                    'date_of_birth' => 'date',
+                    'email' => 'email',
+                    default => 'text'
+                };
+            ?>
+                <div class="field">
+                    <label for="<?= e($name) ?>"><?= e($label) ?> *</label>
+                    <input
+                        type="<?= e($type) ?>"
+                        id="<?= e($name) ?>"
+                        name="<?= e($name) ?>"
+                        required
+                        <?= $maxLength ? 'maxlength="' . (int) $maxLength . '"' : '' ?>
+                        value="<?= e($data[$name] ?? '') ?>">
+
+                    <?php if (isset($errors[$name])): ?>
+                        <div class="field-error">
+                            <?= e($errors[$name]) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>Employment & Appointment Information</h3>
+
+        <div class="p31-form-grid">
+            <?php foreach (array_slice($fields, 4, null, true) as $name => [$label, $maxLength]):
+                $type = $name === 'joining_date' ? 'date' : 'text';
+            ?>
+                <div class="field">
+                    <label for="<?= e($name) ?>"><?= e($label) ?> *</label>
+                    <input
+                        type="<?= e($type) ?>"
+                        id="<?= e($name) ?>"
+                        name="<?= e($name) ?>"
+                        required
+                        <?= $maxLength ? 'maxlength="' . (int) $maxLength . '"' : '' ?>
+                        value="<?= e($data[$name] ?? '') ?>">
+
+                    <?php if (isset($errors[$name])): ?>
+                        <div class="field-error">
+                            <?= e($errors[$name]) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+
+            <div class="field">
+                <label for="employment_type">Employee Type *</label>
+                <select id="employment_type" name="employment_type" required>
+                    <?php foreach (['Teaching', 'Non-Teaching'] as $type): ?>
+                        <option
+                            value="<?= e($type) ?>"
+                            <?= ($data['employment_type'] ?? '') === $type ? 'selected' : '' ?>>
+                            <?= e($type) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <?php if (isset($errors['employment_type'])): ?>
+                    <div class="field-error">
+                        <?= e($errors['employment_type']) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn" type="submit">
+                Update Employee
+            </button>
+
+            <a class="btn btn-ghost"
+               href="<?= e(module_url('view.php?id=' . $id)) ?>">
+                Cancel
+            </a>
+        </div>
+    </form>
 </div>
+
 <?php page_end(); ?>
